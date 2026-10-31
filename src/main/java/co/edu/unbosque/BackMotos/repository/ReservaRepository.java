@@ -17,4 +17,6 @@ public interface ReservaRepository extends JpaRepository<Reserva, Integer> {
 	List<Reserva> findByEstadoAndMotoSucursalIdSucursalOrderByFechaVencimiento(EstadoReserva estado, Integer idSucursal);
 
 	boolean existsByMotoPlacaAndEstado(String placa, EstadoReserva estado);
+
+	List<Reserva> findByEstadoOrderByFechaVencimiento(EstadoReserva estado);
 }
