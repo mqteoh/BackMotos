@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +39,17 @@ public class ClienteService {
 		}
 		return clienteRepository.buscar(texto.trim(), PageRequest.of(0, MAXIMO_RESULTADOS)).stream().map(ClienteDTO::de)
 				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public List<ClienteDTO> listar() {
+		return clienteRepository.findAll(Sort.by("apellidos", "nombres")).stream().map(ClienteDTO::de).toList();
+	}
+
+	@Transactional
+	public void eliminar(Integer idCliente) {
+		clienteRepository.delete(obtener(idCliente));
+		clienteRepository.flush();
 	}
 
 	@Transactional(readOnly = true)
