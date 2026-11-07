@@ -100,7 +100,6 @@ class CatalogoServiceTest {
 		copia.setCiudad("Bogotá");
 		copia.setBarrio("Centro");
 		copia.setCalle("Calle 1");
-		copia.setNumeroDireccion("1-1");
 		assertThatThrownBy(() -> sucursalService.crear(copia)).isInstanceOf(ConflictException.class);
 		ProveedorDTO proveedor = proveedorService.buscarPorId("900456789-1");
 		assertThatThrownBy(() -> proveedorService.crear(proveedor)).isInstanceOf(ConflictException.class);

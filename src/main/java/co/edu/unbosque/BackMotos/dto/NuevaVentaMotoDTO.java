@@ -9,6 +9,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+/**
+ * Datos para vender una moto a un cliente.
+ *
+ * @param placa placa de la moto
+ * @param idCliente identificador del cliente
+ * @param metodoPago método de pago
+ * @param tipoFactura tipo de factura
+ * @param valorTotal valor total de la venta
+ * @param idReserva reserva que se concreta con esta venta; null si no hay
+ */
 public record NuevaVentaMotoDTO(@NotBlank(message = "La placa es obligatoria.") String placa,
 		@NotNull(message = "El cliente es obligatorio.") Integer idCliente,
 		@NotNull(message = "El método de pago es obligatorio.") MetodoPago metodoPago,

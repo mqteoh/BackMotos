@@ -96,7 +96,7 @@ class VendedorControllerTest {
 	void ventaDirectaSacaLaMotoDelCatalogo() throws Exception {
 		mvc.perform(con(post("/api/vendedor/ventas-moto"), laura).content(venta("gtk22f", 3)))
 				.andExpect(status().isCreated()).andExpect(jsonPath("$.placa").value("GTK22F"))
-				.andExpect(jsonPath("$.vendedor").value("Laura Gómez Torres")).andExpect(jsonPath("$.idReserva").doesNotExist());
+				.andExpect(jsonPath("$.vendedor").value("Laura Gómez Torres"));
 		mvc.perform(get("/api/publico/motos/GTK22F")).andExpect(status().isNotFound());
 		mvc.perform(con(post("/api/vendedor/ventas-moto"), laura).content(venta("GTK22F", 3)))
 				.andExpect(status().isConflict()).andExpect(jsonPath("$.mensaje").value("La moto GTK22F ya fue vendida."));
@@ -107,7 +107,7 @@ class VendedorControllerTest {
 		mvc.perform(con(post("/api/vendedor/ventas-moto"), laura).content(venta("MNP12E", 3)))
 				.andExpect(status().isConflict()).andExpect(jsonPath("$.mensaje", containsString("reservada por otro cliente")));
 		mvc.perform(con(post("/api/vendedor/ventas-moto"), laura).content(venta("MNP12E", 2)))
-				.andExpect(status().isCreated()).andExpect(jsonPath("$.idReserva").value(8));
+				.andExpect(status().isCreated()).andExpect(jsonPath("$.cliente").value("Juan Sebastián López Medina"));
 		mvc.perform(con(get("/api/vendedor/reservas"), laura)).andExpect(jsonPath("$", hasSize(0)));
 		String juan = token("juan.lopez@correo.test", "Cliente2026*");
 		mvc.perform(con(get("/api/cliente/reservas"), juan))

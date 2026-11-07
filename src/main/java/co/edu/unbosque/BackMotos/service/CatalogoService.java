@@ -33,23 +33,48 @@ import co.edu.unbosque.BackMotos.repository.MotoDisponibleRepository;
 import co.edu.unbosque.BackMotos.repository.MotoRepository;
 import co.edu.unbosque.BackMotos.repository.SucursalRepository;
 
+/** Catálogo público: motos disponibles con filtros, ficha de una moto y opciones de filtro. */
 @Service
 @Transactional(readOnly = true)
 public class CatalogoService {
 
+	/** Máximo de motos por página. */
 	public static final int TAMANO_MAXIMO = 48;
+	/** Tipos de moto válidos. */
 	private static final Set<String> TIPOS = Set.of("CALLE", "DEPORTIVA", "NAKED", "SCOOTER", "ENDURO", "TOURING",
 			"DOBLE_PROPOSITO");
 
+	/**
+	 * Filtros opcionales del catálogo.
+	 *
+	 * @param marca marca; null para no filtrar
+	 * @param tipo tipo de moto; null para no filtrar
+	 * @param idSucursal sede; null para no filtrar
+	 * @param precioMin precio mínimo; null para no filtrar
+	 * @param precioMax precio máximo; null para no filtrar
+	 * @param texto texto que se busca en la marca, el modelo o la placa; null para no filtrar
+	 */
 	public record FiltroMotos(String marca, String tipo, Integer idSucursal, BigDecimal precioMin,
 			BigDecimal precioMax, String texto) {
 	}
 
+	/** Acceso a la base para las motos disponibles. */
 	private final MotoDisponibleRepository motoDisponibleRepository;
+	/** Acceso a la base para las motos. */
 	private final MotoRepository motoRepository;
+	/** Acceso a la base para las sedes. */
 	private final SucursalRepository sucursalRepository;
+	/** Convierte entidades en DTO y al revés. */
 	private final ModelMapper mapper;
 
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param motoDisponibleRepository acceso a la base para las motos disponibles
+	 * @param motoRepository acceso a la base para las motos
+	 * @param sucursalRepository acceso a la base para las sedes
+	 * @param mapper convierte entidades en DTO y al revés
+	 */
 	public CatalogoService(MotoDisponibleRepository motoDisponibleRepository, MotoRepository motoRepository,
 			SucursalRepository sucursalRepository, ModelMapper mapper) {
 		this.motoDisponibleRepository = motoDisponibleRepository;
@@ -58,12 +83,27 @@ public class CatalogoService {
 		this.mapper = mapper;
 	}
 
+	/**
+	 * Busca motos disponibles con los filtros y el orden pedidos.
+	 *
+	 * @param filtro filtros; los que vienen en null no se aplican
+	 * @param pagina número de página, desde 0
+	 * @param tamano motos por página, máximo TAMANO_MAXIMO
+	 * @param orden  orden de los resultados
+	 * @return la página pedida
+	 */
 	public PaginaDTO<MotoCatalogoDTO> buscarMotos(FiltroMotos filtro, int pagina, int tamano, OrdenCatalogo orden) {
 		validar(filtro, pagina, tamano);
 		PageRequest solicitud = PageRequest.of(pagina, tamano, orden.getSort());
 		return PaginaDTO.de(motoDisponibleRepository.findAll(especificacion(filtro), solicitud), MotoCatalogoDTO::de);
 	}
 
+	/**
+	 * Ficha de una moto disponible; si ya no lo está responde 404.
+	 *
+	 * @param placa placa de la moto
+	 * @return la ficha de la moto
+	 */
 	public MotoDetalleDTO detalleMoto(String placa) {
 		String normalizada = placa.trim().toUpperCase(Locale.ROOT);
 		if (!motoDisponibleRepository.existsById(normalizada)) {
@@ -73,6 +113,11 @@ public class CatalogoService {
 		return MotoDetalleDTO.de(moto, mapper.map(moto.getSucursal(), SucursalDTO.class));
 	}
 
+	/**
+	 * Marcas, tipos y sedes con motos disponibles.
+	 *
+	 * @return marcas, tipos y sedes con motos disponibles
+	 */
 	public FiltrosCatalogoDTO filtros() {
 		List<MotoDisponible> disponibles = motoDisponibleRepository.findAll();
 		Map<Integer, Long> porSede = disponibles.stream()
@@ -89,6 +134,13 @@ public class CatalogoService {
 				contar(disponibles, MotoDisponible::getTipoMoto), sedes, minimo, maximo, disponibles.size());
 	}
 
+	/**
+	 * Cuenta las motos por cada valor de un campo, en orden alfabético.
+	 *
+	 * @param motos motos disponibles
+	 * @param campo campo por el que se agrupan
+	 * @return cada valor con su cantidad de motos
+	 */
 	private List<Opcion> contar(List<MotoDisponible> motos, Function<MotoDisponible, String> campo) {
 		Map<String, Long> conteo = motos.stream()
 				.collect(Collectors.groupingBy(campo, TreeMap::new, Collectors.counting()));
@@ -97,6 +149,13 @@ public class CatalogoService {
 		return opciones;
 	}
 
+	/**
+	 * Revisa la página, el tamaño, el tipo y el rango de precios; si algo no sirve lanza BadRequestException.
+	 *
+	 * @param filtro filtros pedidos
+	 * @param pagina número de página, desde 0
+	 * @param tamano elementos por página
+	 */
 	private void validar(FiltroMotos filtro, int pagina, int tamano) {
 		if (pagina < 0) {
 			throw new BadRequestException("La página no puede ser negativa.");
@@ -114,6 +173,12 @@ public class CatalogoService {
 		}
 	}
 
+	/**
+	 * Arma la consulta con los filtros que vienen llenos.
+	 *
+	 * @param f filtros pedidos
+	 * @return la consulta para la vista de motos disponibles
+	 */
 	private Specification<MotoDisponible> especificacion(FiltroMotos f) {
 		List<Specification<MotoDisponible>> condiciones = new ArrayList<>();
 		if (f.marca() != null && !f.marca().isBlank()) {

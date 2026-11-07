@@ -6,15 +6,27 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import co.edu.unbosque.BackMotos.entity.Moto;
-import co.edu.unbosque.BackMotos.entity.OrigenMoto;
 
+/**
+ * Consultas de las motos del inventario.
+ */
 public interface MotoRepository extends JpaRepository<Moto, String> {
 
-	List<Moto> findByOrigen(OrigenMoto origen);
-
+	/**
+	 * Motos de una sede.
+	 *
+	 * @param idSucursal identificador de la sede
+	 * @return las motos de la sede
+	 */
 	List<Moto> findBySucursalIdSucursal(Integer idSucursal);
 
-	@Query("SELECT m FROM Moto m WHERE m.origen = :origen AND (:idSucursal IS NULL OR m.sucursal.idSucursal = :idSucursal)"
-			+ " AND NOT EXISTS (SELECT v FROM VentaMoto v WHERE v.moto = m) ORDER BY m.sucursal.nombre, m.placa")
-	List<Moto> sinVender(OrigenMoto origen, Integer idSucursal);
+	/**
+	 * Motos que todavía no se han vendido (disponibles o reservadas), de una sede o de todas.
+	 *
+	 * @param idSucursal identificador de la sede
+	 * @return las motos sin vender
+	 */
+	@Query("SELECT m FROM Moto m WHERE m.estado <> co.edu.unbosque.BackMotos.entity.EstadoMoto.VENDIDA"
+			+ " AND (:idSucursal IS NULL OR m.sucursal.idSucursal = :idSucursal) ORDER BY m.sucursal.nombre, m.placa")
+	List<Moto> sinVender(Integer idSucursal);
 }

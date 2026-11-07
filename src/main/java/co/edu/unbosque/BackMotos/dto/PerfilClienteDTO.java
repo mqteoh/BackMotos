@@ -11,6 +11,23 @@ import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Perfil del cliente con sesión iniciada. El documento no se puede cambiar.
+ *
+ * @param idCliente identificador del cliente
+ * @param documento número de documento de identidad
+ * @param nombres nombres de la persona
+ * @param apellidos apellidos de la persona
+ * @param fechaNacimiento fecha de nacimiento
+ * @param edad edad en años, calculada con la fecha de nacimiento
+ * @param ciudad ciudad
+ * @param barrio barrio de la dirección
+ * @param calle calle de la dirección
+ * @param numeroDireccion número de la dirección
+ * @param correoAcceso correo con el que inicia sesión en la aplicación
+ * @param telefonos números de teléfono
+ * @param correos correos de contacto
+ */
 public record PerfilClienteDTO(@Schema(accessMode = Schema.AccessMode.READ_ONLY) Integer idCliente,
 		@Schema(accessMode = Schema.AccessMode.READ_ONLY) String documento,
 		@NotBlank(message = "Los nombres son obligatorios.") @Size(max = 60, message = "Los nombres admiten máximo 60 caracteres.") String nombres,

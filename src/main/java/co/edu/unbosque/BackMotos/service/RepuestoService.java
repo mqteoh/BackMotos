@@ -11,16 +11,31 @@ import co.edu.unbosque.BackMotos.dto.RepuestoDTO;
 import co.edu.unbosque.BackMotos.entity.Repuesto;
 import co.edu.unbosque.BackMotos.repository.RepuestoRepository;
 
+/** CRUD de repuestos y búsqueda para el taller. */
 @Service
 public class RepuestoService extends ServicioCrudBase<Repuesto, RepuestoDTO, Integer> {
 
+	/** Acceso a la base para los repuestos. */
 	private final RepuestoRepository repuestoRepository;
 
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param repuestoRepository acceso a la base para los repuestos
+	 * @param mapper convierte entidades en DTO y al revés
+	 */
 	public RepuestoService(RepuestoRepository repuestoRepository, ModelMapper mapper) {
 		super(repuestoRepository, mapper, Repuesto.class, RepuestoDTO.class, "el repuesto", Sort.by("nombre"));
 		this.repuestoRepository = repuestoRepository;
 	}
 
+	/**
+	 * Busca repuestos por categoría o, si no hay categoría, por parte del nombre.
+	 *
+	 * @param texto parte del nombre; null si se busca por categoría
+	 * @param categoria categoría del repuesto; null para buscar por nombre
+	 * @return los repuestos encontrados
+	 */
 	@Transactional(readOnly = true)
 	public List<RepuestoDTO> buscar(String texto, String categoria) {
 		List<Repuesto> repuestos;

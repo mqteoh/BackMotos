@@ -13,6 +13,19 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 
+/**
+ * Entrega de repuestos de un proveedor a una sede.
+ *
+ * @param nit el NIT del proveedor
+ * @param idRepuesto identificador del repuesto
+ * @param idSucursal identificador de la sede
+ * @param fechaSuministro fecha en que llegó el suministro
+ * @param cantidad unidades entregadas
+ * @param costoUnitario costo por unidad
+ * @param proveedor nombre del proveedor
+ * @param repuesto nombre del repuesto
+ * @param sucursal nombre de la sede
+ */
 public record SuministroDTO(@NotBlank(message = "El proveedor es obligatorio.") String nit,
 		@NotNull(message = "El repuesto es obligatorio.") Integer idRepuesto,
 		@NotNull(message = "La sede es obligatoria.") Integer idSucursal,
@@ -23,6 +36,12 @@ public record SuministroDTO(@NotBlank(message = "El proveedor es obligatorio.") 
 		@Schema(accessMode = Schema.AccessMode.READ_ONLY) String repuesto,
 		@Schema(accessMode = Schema.AccessMode.READ_ONLY) String sucursal) {
 
+	/**
+	 * Arma el DTO desde la entidad.
+	 *
+	 * @param s suministro que se convierte
+	 * @return el DTO del suministro
+	 */
 	public static SuministroDTO de(Suministro s) {
 		return new SuministroDTO(s.getProveedor().getNit(), s.getRepuesto().getIdRepuesto(),
 				s.getSucursal().getIdSucursal(), s.getFechaSuministro(), s.getCantidad(), s.getCostoUnitario(),

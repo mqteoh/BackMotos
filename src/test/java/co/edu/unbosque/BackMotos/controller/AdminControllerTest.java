@@ -1,5 +1,6 @@
 package co.edu.unbosque.BackMotos.controller;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -71,13 +72,14 @@ class AdminControllerTest {
 	}
 
 	private String moto(String placa, String extra) {
-		return "{\"placa\":\"" + placa + "\",\"idMarca\":1,\"nroModelo\":1,\"origen\":\"INVENTARIO\",\"anio\":2026,"
+		return "{\"placa\":\"" + placa + "\",\"idMarca\":1,\"nroModelo\":1,\"anio\":2026,"
 				+ "\"color\":\"Rojo\",\"kilometraje\":0,\"fechaIngreso\":\"2026-10-20\"" + extra + "}";
 	}
 
 	private String empleado(String documento, String tipo, String extra) {
 		return "{\"documento\":\"" + documento + "\",\"nombres\":\"Ana\",\"apellidos\":\"Nueva Sede\","
-				+ "\"fechaContratacion\":\"2026-10-01\",\"tipoEmpleado\":\"" + tipo + "\",\"idSucursal\":3,\"idJefe\":8,"
+				+ "\"fechaContratacion\":\"2026-10-01\",\"tipoEmpleado\":\"" + tipo + "\",\"salario\":2500000,"
+				+ "\"idSucursal\":3,\"idJefe\":8,"
 				+ "\"correoAcceso\":\"ana.nueva@concesionario-motos.test\",\"telefonos\":[\"3015550000\"],"
 				+ "\"contrasena\":\"ClaveInicial1\"" + extra + "}";
 	}
@@ -107,15 +109,16 @@ class AdminControllerTest {
 	}
 
 	@Test
-	void administraMotosRespetandoSuOrigen() throws Exception {
+	void administraMotosConSuEstado() throws Exception {
 		mvc.perform(con(get("/api/admin/motos").param("idSucursal", "1"))).andExpect(jsonPath("$", hasSize(8)));
-		mvc.perform(con(get("/api/admin/motos").param("origen", "EXTERNA"))).andExpect(jsonPath("$", hasSize(6)));
+		mvc.perform(con(get("/api/admin/motos").param("estado", "VENDIDA"))).andExpect(jsonPath("$", hasSize(13)));
+		mvc.perform(con(get("/api/admin/motos").param("estado", "RESERVADA").param("idSucursal", "4")))
+				.andExpect(jsonPath("$[*].placa", containsInAnyOrder("FGH69K")));
 		mvc.perform(con(post("/api/admin/motos")).content(moto("ADM10A", ",\"idSucursal\":1")))
-				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.mensaje").value("Una moto de inventario necesita sede y precio."));
+				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.campos[0].campo").value("precio"));
 		mvc.perform(con(post("/api/admin/motos")).content(moto("adm10a", ",\"idSucursal\":1,\"precio\":11000000")))
 				.andExpect(status().isCreated()).andExpect(jsonPath("$.placa").value("ADM10A"))
-				.andExpect(jsonPath("$.vendida").value(false));
+				.andExpect(jsonPath("$.estado").value("DISPONIBLE"));
 		mvc.perform(get("/api/publico/motos/ADM10A")).andExpect(status().isOk());
 		mvc.perform(con(put("/api/admin/motos/ADM10A")).content(moto("ADM10A", ",\"idSucursal\":2,\"precio\":10500000")))
 				.andExpect(jsonPath("$.sucursal").value("Sede Suba"));
@@ -141,7 +144,7 @@ class AdminControllerTest {
 	@Test
 	void reglasAlEditarYEliminarEmpleados() throws Exception {
 		String laura = "{\"documento\":\"52789456\",\"nombres\":\"Laura\",\"apellidos\":\"Gómez Torres\","
-				+ "\"fechaContratacion\":\"2018-03-12\",\"tipoEmpleado\":\"TECNICO\",\"idSucursal\":1,\"idJefe\":1,"
+				+ "\"fechaContratacion\":\"2018-03-12\",\"tipoEmpleado\":\"TECNICO\",\"salario\":3200000,\"idSucursal\":1,\"idJefe\":1,"
 				+ "\"correoAcceso\":\"laura.gomez@concesionario-motos.test\",\"certificadoTecnico\":\"x\",\"especialidad\":\"y\"}";
 		mvc.perform(con(put("/api/admin/empleados/2")).content(laura)).andExpect(status().isConflict());
 		String lauraVendedora = laura.replace("\"TECNICO\"", "\"VENDEDOR\"").replace(
@@ -172,12 +175,15 @@ class AdminControllerTest {
 		mvc.perform(con(get("/api/admin/reservas").param("estado", "ACTIVA"))).andExpect(jsonPath("$", hasSize(3)));
 		mvc.perform(con(delete("/api/admin/reservas/1"))).andExpect(status().isConflict());
 		mvc.perform(con(delete("/api/admin/reservas/4"))).andExpect(status().isNoContent());
-		mvc.perform(con(delete("/api/admin/ventas-moto/4"))).andExpect(status().isNoContent());
+		mvc.perform(con(delete("/api/admin/ventas-moto/hbn46c"))).andExpect(status().isNoContent());
+		mvc.perform(con(delete("/api/admin/ventas-moto/HBN46C"))).andExpect(status().isNotFound());
 		mvc.perform(get("/api/publico/motos/HBN46C")).andExpect(status().isOk());
 		mvc.perform(con(get("/api/admin/reservas").param("estado", "CANCELADA")))
 				.andExpect(jsonPath("$[?(@.idReserva == 1)].estado").value("CANCELADA"));
 		mvc.perform(con(delete("/api/admin/ventas-accesorio/1"))).andExpect(status().isNoContent());
-		mvc.perform(con(get("/api/admin/reparaciones").param("estado", "FINALIZADA"))).andExpect(jsonPath("$", hasSize(8)));
+		mvc.perform(con(get("/api/admin/reparaciones"))).andExpect(jsonPath("$", hasSize(10)));
+		mvc.perform(con(get("/api/admin/reparaciones").param("idSucursal", "1").param("desde", "2026-04-01")))
+				.andExpect(jsonPath("$[*].placa", containsInAnyOrder("HBN46C", "GTK21F", "HBN45C")));
 		mvc.perform(con(delete("/api/admin/reparaciones/1"))).andExpect(status().isNoContent());
 	}
 
@@ -198,7 +204,7 @@ class AdminControllerTest {
 	@Test
 	void reportesDeGestion() throws Exception {
 		mvc.perform(con(get("/api/admin/reportes/resumen"))).andExpect(jsonPath("$.motosDisponibles").value(12))
-				.andExpect(jsonPath("$.reservasActivas").value(3)).andExpect(jsonPath("$.reparacionesPendientes").value(4))
+				.andExpect(jsonPath("$.reservasActivas").value(3)).andExpect(jsonPath("$.reparacionesMes").isNumber())
 				.andExpect(jsonPath("$.clientes").value(15)).andExpect(jsonPath("$.empleados").value(12));
 		mvc.perform(con(get("/api/admin/reportes/ventas-por-vendedor"))).andExpect(jsonPath("$", hasSize(6)))
 				.andExpect(jsonPath("$[0].vendedor").value("Santiago Pérez Arango"))

@@ -9,11 +9,19 @@ import co.edu.unbosque.BackMotos.entity.Sucursal;
 import co.edu.unbosque.BackMotos.exception.ConflictException;
 import co.edu.unbosque.BackMotos.repository.SucursalRepository;
 
+/** CRUD de sedes. */
 @Service
 public class SucursalService extends ServicioCrudBase<Sucursal, SucursalDTO, Integer> {
 
+	/** Acceso a la base para las sedes. */
 	private final SucursalRepository sucursalRepository;
 
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param sucursalRepository acceso a la base para las sedes
+	 * @param mapper convierte entidades en DTO y al revés
+	 */
 	public SucursalService(SucursalRepository sucursalRepository, ModelMapper mapper) {
 		super(sucursalRepository, mapper, Sucursal.class, SucursalDTO.class, "la sede", Sort.by("nombre"));
 		this.sucursalRepository = sucursalRepository;

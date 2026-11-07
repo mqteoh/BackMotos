@@ -17,12 +17,22 @@ import co.edu.unbosque.BackMotos.exception.ResourceNotFoundException;
 import co.edu.unbosque.BackMotos.repository.MarcaRepository;
 import co.edu.unbosque.BackMotos.repository.ModeloRepository;
 
+/** CRUD de modelos. El número del modelo se asigna solo dentro de cada marca. */
 @Service
 public class ModeloService extends ServicioCrudBase<Modelo, ModeloDTO, ModeloId> {
 
+	/** Acceso a la base para los modelos. */
 	private final ModeloRepository modeloRepository;
+	/** Acceso a la base para las marcas. */
 	private final MarcaRepository marcaRepository;
 
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param modeloRepository acceso a la base para los modelos
+	 * @param marcaRepository acceso a la base para las marcas
+	 * @param mapper convierte entidades en DTO y al revés
+	 */
 	public ModeloService(ModeloRepository modeloRepository, MarcaRepository marcaRepository, ModelMapper mapper) {
 		super(modeloRepository, mapper, Modelo.class, ModeloDTO.class, "el modelo",
 				Sort.by("id.idMarca", "id.nroModelo"));
@@ -30,6 +40,7 @@ public class ModeloService extends ServicioCrudBase<Modelo, ModeloDTO, ModeloId>
 		this.marcaRepository = marcaRepository;
 	}
 
+	/** Crea el modelo con el siguiente número libre de la marca. */
 	@Override
 	@Transactional
 	public ModeloDTO crear(ModeloDTO dto) {
@@ -43,6 +54,7 @@ public class ModeloService extends ServicioCrudBase<Modelo, ModeloDTO, ModeloId>
 		return aDto(modeloRepository.saveAndFlush(modelo));
 	}
 
+	/** Cambia los datos del modelo; la marca y el número no cambian. */
 	@Override
 	@Transactional
 	public ModeloDTO actualizar(ModeloId id, ModeloDTO dto) {
@@ -57,6 +69,12 @@ public class ModeloService extends ServicioCrudBase<Modelo, ModeloDTO, ModeloId>
 		return aDto(modeloRepository.saveAndFlush(modelo));
 	}
 
+	/**
+	 * Modelos de una marca.
+	 *
+	 * @param idMarca identificador de la marca
+	 * @return modelos de una marca
+	 */
 	@Transactional(readOnly = true)
 	public List<ModeloDTO> listarPorMarca(Integer idMarca) {
 		if (!marcaRepository.existsById(idMarca)) {
@@ -88,6 +106,12 @@ public class ModeloService extends ServicioCrudBase<Modelo, ModeloDTO, ModeloId>
 		entidad.setId(id);
 	}
 
+	/**
+	 * Copia los datos del DTO al modelo.
+	 *
+	 * @param dto datos nuevos
+	 * @param modelo modelo que se modifica
+	 */
 	private void copiarDatos(ModeloDTO dto, Modelo modelo) {
 		modelo.setNombre(dto.getNombre());
 		modelo.setCilindraje(dto.getCilindraje());
@@ -96,6 +120,12 @@ public class ModeloService extends ServicioCrudBase<Modelo, ModeloDTO, ModeloId>
 		modelo.setCapacidadTanque(dto.getCapacidadTanque());
 	}
 
+	/**
+	 * Lanza ConflictException si la marca ya tiene un modelo con ese nombre.
+	 *
+	 * @param idMarca identificador de la marca
+	 * @param nombre nombre del modelo
+	 */
 	private void validarNombre(Integer idMarca, String nombre) {
 		if (modeloRepository.existsByIdIdMarcaAndNombreIgnoreCase(idMarca, nombre)) {
 			throw new ConflictException("La marca ya tiene un modelo llamado " + nombre + ".");

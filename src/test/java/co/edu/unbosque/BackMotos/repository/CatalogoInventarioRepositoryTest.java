@@ -17,7 +17,7 @@ import co.edu.unbosque.BackMotos.entity.Modelo;
 import co.edu.unbosque.BackMotos.entity.ModeloId;
 import co.edu.unbosque.BackMotos.entity.Moto;
 import co.edu.unbosque.BackMotos.entity.MotoDisponible;
-import co.edu.unbosque.BackMotos.entity.OrigenMoto;
+import co.edu.unbosque.BackMotos.entity.EstadoMoto;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = Replace.NONE)
@@ -61,43 +61,45 @@ class CatalogoInventarioRepositoryTest {
 	@Test
 	void motoDeInventarioTraeModeloYSucursal() {
 		Moto moto = motoRepository.findById("GTK21F").orElseThrow();
-		assertThat(moto.getOrigen()).isEqualTo(OrigenMoto.INVENTARIO);
+		assertThat(moto.getEstado()).isEqualTo(EstadoMoto.VENDIDA);
 		assertThat(moto.getModelo().getNombre()).isEqualTo("FZ 2.0");
 		assertThat(moto.getSucursal().getNombre()).isEqualTo("Sede Chapinero");
 		assertThat(moto.getPrecio()).isNotNull();
 	}
 
 	@Test
-	void motoExternaNoTieneSucursalNiPrecio() {
-		Moto moto = motoRepository.findById("BCD47E").orElseThrow();
-		assertThat(moto.getOrigen()).isEqualTo(OrigenMoto.EXTERNA);
-		assertThat(moto.getSucursal()).isNull();
-		assertThat(moto.getPrecio()).isNull();
-		assertThat(motoRepository.findByOrigen(OrigenMoto.EXTERNA)).hasSize(6);
+	void lasMotosSeRepartenPorEstado() {
+		assertThat(motoRepository.findAll()).extracting(Moto::getEstado).filteredOn(e -> e == EstadoMoto.DISPONIBLE)
+				.hasSize(12);
+		assertThat(motoRepository.findAll()).extracting(Moto::getEstado).filteredOn(e -> e == EstadoMoto.RESERVADA)
+				.hasSize(3);
+		assertThat(motoRepository.findAll()).extracting(Moto::getEstado).filteredOn(e -> e == EstadoMoto.VENDIDA)
+				.hasSize(13);
+		assertThat(motoRepository.sinVender(null)).hasSize(15);
 	}
 
 	@Test
 	void guardaUnaMotoNuevaDeInventario() {
 		Moto nueva = motoInventario("PRB10Z");
 		motoRepository.saveAndFlush(nueva);
-		assertThat(motoRepository.findById("PRB10Z")).isPresent();
+		assertThat(motoRepository.findById("PRB10Z")).get().extracting(Moto::getEstado).isEqualTo(EstadoMoto.DISPONIBLE);
 		assertThat(motoRepository.findBySucursalIdSucursal(1)).extracting(Moto::getPlaca).contains("PRB10Z");
 	}
 
 	@Test
-	void laBaseRechazaUnaMotoExternaConSucursal() {
+	void laBaseRechazaUnaPlacaConFormatoInvalido() {
 		Moto invalida = motoInventario("PRB11Z");
-		invalida.setOrigen(OrigenMoto.EXTERNA);
+		invalida.setPlaca("ab123");
 		assertThatThrownBy(() -> motoRepository.saveAndFlush(invalida)).rootCause()
-				.isInstanceOf(SQLException.class).hasMessageContaining("ck_moto_origen_datos")
-				.extracting(e -> ((SQLException) e).getErrorCode()).isEqualTo(3819);
+				.isInstanceOf(SQLException.class).hasMessageContaining("ck_moto_placa")
+				.extracting(e -> ((SQLException) e).getSQLState()).isEqualTo("23514");
 	}
 
 	@Test
 	void vistaDeDisponiblesExcluyeVendidasYReservadas() {
 		assertThat(motoDisponibleRepository.count()).isEqualTo(12);
 		assertThat(motoDisponibleRepository.findAll()).extracting(MotoDisponible::getPlaca)
-				.doesNotContain("JKL78D", "LMN24P", "BCD47E").contains("GTK22F");
+				.doesNotContain("JKL78D", "LMN24P").contains("GTK22F");
 	}
 
 	private Moto motoInventario(String placa) {
@@ -105,7 +107,6 @@ class CatalogoInventarioRepositoryTest {
 		moto.setPlaca(placa);
 		moto.setModelo(modeloRepository.getReferenceById(new ModeloId(1, 1)));
 		moto.setSucursal(sucursalRepository.getReferenceById(1));
-		moto.setOrigen(OrigenMoto.INVENTARIO);
 		moto.setAnio(2026);
 		moto.setColor("Gris");
 		moto.setKilometraje(0);

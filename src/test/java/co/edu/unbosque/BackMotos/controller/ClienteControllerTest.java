@@ -1,7 +1,6 @@
 package co.edu.unbosque.BackMotos.controller;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -11,8 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,15 +50,6 @@ class ClienteControllerTest {
 
 	private MockHttpServletRequestBuilder con(MockHttpServletRequestBuilder peticion, String token) {
 		return peticion.header(HttpHeaders.AUTHORIZATION, "Bearer " + token).contentType(MediaType.APPLICATION_JSON);
-	}
-
-	private String agenda(String placa, String extra) {
-		return agenda(placa, extra, LocalDateTime.now().plusDays(3).truncatedTo(ChronoUnit.MINUTES));
-	}
-
-	private String agenda(String placa, String extra, LocalDateTime fecha) {
-		return "{\"placa\":\"" + placa + "\",\"idSucursal\":1,\"fechaAgendada\":\"" + fecha
-				+ "\",\"descripcion\":\"Revisión de frenos\",\"kilometrajeIngreso\":5200" + extra + "}";
 	}
 
 	@Test
@@ -109,53 +97,20 @@ class ClienteControllerTest {
 	}
 
 	@Test
-	void agendaServicioParaMotoCompradaSinDuplicarlo() throws Exception {
-		mvc.perform(con(post("/api/cliente/reparaciones"), maria).content(agenda("HBN46C", "")))
-				.andExpect(status().isCreated()).andExpect(jsonPath("$.estado").value("AGENDADA"))
-				.andExpect(jsonPath("$.tecnico").doesNotExist()).andExpect(jsonPath("$.sucursal").value("Sede Chapinero"));
-		mvc.perform(con(post("/api/cliente/reparaciones"), maria).content(agenda("HBN46C", "")))
-				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.mensaje").value("La moto HBN46C ya tiene un servicio pendiente en el taller."));
-	}
-
-	@Test
-	void agendaServicioParaUnaMotoExternaNueva() throws Exception {
-		String externa = ",\"motoExterna\":{\"idMarca\":2,\"nroModelo\":2,\"anio\":2021,\"color\":\"Negro\"}";
-		mvc.perform(con(post("/api/cliente/reparaciones"), maria).content(agenda("new12a", externa)))
-				.andExpect(status().isCreated()).andExpect(jsonPath("$.placa").value("NEW12A"))
-				.andExpect(jsonPath("$.modelo").value("XR 150L"));
-		mvc.perform(con(get("/api/cliente/motos"), maria)).andExpect(jsonPath("$[*].placa", hasItem("NEW12A")));
-	}
-
-	@Test
-	void reglasDelTallerParaPlacasNoValidas() throws Exception {
-		mvc.perform(con(post("/api/cliente/reparaciones"), maria).content(agenda("ZZZ99Z", "")))
-				.andExpect(status().isBadRequest());
-		mvc.perform(con(post("/api/cliente/reparaciones"), maria).content(agenda("GTK22F", "")))
-				.andExpect(status().isConflict());
-		mvc.perform(con(post("/api/cliente/reparaciones"), maria)
-				.content(agenda("HBN46C", "", LocalDateTime.of(2020, 1, 1, 9, 0)))).andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.campos[0].campo").value("fechaAgendada"));
-	}
-
-	@Test
-	void cancelarUnServicioAgendado() throws Exception {
-		String cuerpo = mvc.perform(con(post("/api/cliente/reparaciones"), maria).content(agenda("HBN46C", "")))
-				.andReturn().getResponse().getContentAsString();
-		Integer id = JsonPath.read(cuerpo, "$.idReparacion");
-		mvc.perform(con(patch("/api/cliente/reparaciones/" + id + "/cancelar"), maria)).andExpect(status().isOk())
-				.andExpect(jsonPath("$.estado").value("CANCELADA"));
-		mvc.perform(con(patch("/api/cliente/reparaciones/" + id + "/cancelar"), juan)).andExpect(status().isNotFound());
+	void elClienteSoloConsultaLasReparaciones() throws Exception {
+		String reparacion = "{\"placa\":\"HBN46C\",\"fecha\":\"2026-10-01\",\"descripcion\":\"Revisión\",\"costo\":1}";
+		mvc.perform(con(post("/api/tecnico/reparaciones"), maria).content(reparacion)).andExpect(status().isForbidden());
+		mvc.perform(con(get("/api/tecnico/historial/HBN46C"), maria)).andExpect(status().isForbidden());
 	}
 
 	@Test
 	void consultaSusReparacionesMotosYCompras() throws Exception {
 		mvc.perform(con(get("/api/cliente/reparaciones"), maria)).andExpect(jsonPath("$", hasSize(1)))
-				.andExpect(jsonPath("$[0].placa").value("STU28H")).andExpect(jsonPath("$[0].estado").value("EN_PROCESO"))
-				.andExpect(jsonPath("$[0].tecnico").value("Felipe Ortiz Lozano"))
-				.andExpect(jsonPath("$[0].costoRepuestos").value(72000.0));
-		mvc.perform(con(get("/api/cliente/motos"), maria))
-				.andExpect(jsonPath("$[*].placa", containsInAnyOrder("HBN46C", "STU28H")));
+				.andExpect(jsonPath("$[0].placa").value("HBN46C")).andExpect(jsonPath("$[0].fecha").value("2026-04-10"))
+				.andExpect(jsonPath("$[0].tecnicos[*].nombre", containsInAnyOrder("Felipe Ortiz Lozano", "Jhon Castaño Ruiz")))
+				.andExpect(jsonPath("$[0].costoRepuestos").value(338000.0)).andExpect(jsonPath("$[0].costoTotal").value(488000.0));
+		mvc.perform(con(get("/api/cliente/reparaciones"), juan)).andExpect(jsonPath("$[*].placa", containsInAnyOrder("QRS36A")));
+		mvc.perform(con(get("/api/cliente/motos"), maria)).andExpect(jsonPath("$[*].placa", containsInAnyOrder("HBN46C")));
 		mvc.perform(con(get("/api/cliente/compras"), maria)).andExpect(jsonPath("$.motos", hasSize(1)))
 				.andExpect(jsonPath("$.motos[0].placa").value("HBN46C"))
 				.andExpect(jsonPath("$.accesorios[0].valorTotal").value(1048000.0))

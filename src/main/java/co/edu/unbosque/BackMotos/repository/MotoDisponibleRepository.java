@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import co.edu.unbosque.BackMotos.entity.MotoDisponible;
 
+/** Catálogo leído de la vista v_moto_disponible, con filtros. */
 public interface MotoDisponibleRepository
 		extends JpaRepository<MotoDisponible, String>, JpaSpecificationExecutor<MotoDisponible> {
 }

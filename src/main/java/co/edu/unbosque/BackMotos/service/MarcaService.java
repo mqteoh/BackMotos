@@ -9,11 +9,19 @@ import co.edu.unbosque.BackMotos.entity.Marca;
 import co.edu.unbosque.BackMotos.exception.ConflictException;
 import co.edu.unbosque.BackMotos.repository.MarcaRepository;
 
+/** CRUD de marcas. */
 @Service
 public class MarcaService extends ServicioCrudBase<Marca, MarcaDTO, Integer> {
 
+	/** Acceso a la base para las marcas. */
 	private final MarcaRepository marcaRepository;
 
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param marcaRepository acceso a la base para las marcas
+	 * @param mapper convierte entidades en DTO y al revés
+	 */
 	public MarcaService(MarcaRepository marcaRepository, ModelMapper mapper) {
 		super(marcaRepository, mapper, Marca.class, MarcaDTO.class, "la marca", Sort.by("nombre"));
 		this.marcaRepository = marcaRepository;

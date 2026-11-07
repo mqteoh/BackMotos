@@ -9,6 +9,21 @@ import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Datos para que un cliente cree su cuenta en la web.
+ *
+ * @param documento número de documento de identidad
+ * @param nombres nombres de la persona
+ * @param apellidos apellidos de la persona
+ * @param fechaNacimiento fecha de nacimiento
+ * @param ciudad ciudad
+ * @param barrio barrio de la dirección
+ * @param calle calle de la dirección
+ * @param numeroDireccion número de la dirección
+ * @param telefono número de teléfono
+ * @param correo correo electrónico
+ * @param contrasena contraseña en texto plano; solo se recibe, nunca se devuelve
+ */
 public record RegistroClienteDTO(
 		@NotBlank(message = "El documento es obligatorio.") @Pattern(regexp = "^[0-9]{5,15}$", message = "El documento debe tener entre 5 y 15 dígitos.") String documento,
 		@NotBlank(message = "Los nombres son obligatorios.") @Size(max = 60, message = "Los nombres admiten máximo 60 caracteres.") String nombres,

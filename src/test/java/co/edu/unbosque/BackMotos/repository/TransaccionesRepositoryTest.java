@@ -16,7 +16,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
-import co.edu.unbosque.BackMotos.entity.EstadoReparacion;
+import co.edu.unbosque.BackMotos.entity.EstadoMoto;
 import co.edu.unbosque.BackMotos.entity.EstadoReserva;
 import co.edu.unbosque.BackMotos.entity.MetodoPago;
 import co.edu.unbosque.BackMotos.entity.Reparacion;
@@ -41,7 +41,7 @@ class TransaccionesRepositoryTest {
 	private VentaAccesorioRepository ventaAccesorioRepository;
 
 	@Autowired
-	private TotalVentaAccesorioRepository totalVentaAccesorioRepository;
+	private TecnicoRepository tecnicoRepository;
 
 	@Autowired
 	private ReparacionRepository reparacionRepository;
@@ -78,9 +78,10 @@ class TransaccionesRepositoryTest {
 
 	@Test
 	void ventaDeMotoDesdeReservaConcretada() {
-		VentaMoto venta = ventaMotoRepository.findByMotoPlaca("HBN46C").orElseThrow();
-		assertThat(venta.getReserva().getEstado()).isEqualTo(EstadoReserva.CONCRETADA);
-		assertThat(venta.getCliente().getIdCliente()).isEqualTo(venta.getReserva().getCliente().getIdCliente());
+		VentaMoto venta = ventaMotoRepository.findById("HBN46C").orElseThrow();
+		assertThat(reservaRepository.findByMotoPlacaAndEstado("HBN46C", EstadoReserva.CONCRETADA)).get()
+				.extracting(r -> r.getCliente().getIdCliente()).isEqualTo(venta.getCliente().getIdCliente());
+		assertThat(venta.getMoto().getEstado()).isEqualTo(EstadoMoto.VENDIDA);
 		assertThat(venta.getVendedor().getNombres()).isEqualTo("Laura");
 		assertThat(ventaMotoRepository.findByVendedorIdEmpleadoOrderByFechaVentaDesc(8)).hasSize(3);
 	}
@@ -90,25 +91,27 @@ class TransaccionesRepositoryTest {
 		VentaAccesorio venta = ventaAccesorioRepository.findById(1).orElseThrow();
 		assertThat(venta.getDetalles()).hasSize(3);
 		assertThat(venta.getValorTotal()).isEqualByComparingTo("577000");
-		assertThat(totalVentaAccesorioRepository.findById(1).orElseThrow().getValorTotal()).isEqualByComparingTo("577000");
 	}
 
 	@Test
 	void costoDeReparacionSumaManoDeObraYRepuestos() {
-		Reparacion reparacion = reparacionRepository.findById(2).orElseThrow();
-		assertThat(reparacion.getMoto().getPlaca()).isEqualTo("BCD47E");
-		assertThat(reparacion.getTecnico().getNombres()).isEqualTo("Felipe");
+		Reparacion reparacion = reparacionRepository.findById(3).orElseThrow();
+		assertThat(reparacion.getMoto().getPlaca()).isEqualTo("HBN46C");
+		assertThat(reparacion.getTecnicos()).extracting(t -> t.getNombres()).containsExactlyInAnyOrder("Jhon", "Felipe");
+		assertThat(reparacion.getSucursal().getNombre()).isEqualTo("Sede Chapinero");
 		assertThat(reparacion.getRepuestos()).hasSize(3);
 		assertThat(reparacion.getCostoTotal()).isEqualByComparingTo("488000");
-		assertThat(costoReparacionRepository.findById(2).orElseThrow().getCostoTotal()).isEqualByComparingTo("488000");
+		assertThat(costoReparacionRepository.findById(3).orElseThrow().getCostoTotal()).isEqualByComparingTo("488000");
 	}
 
 	@Test
-	void reparacionAgendadaNoTieneTecnico() {
-		Reparacion agendada = reparacionRepository.findByMotoPlacaOrderByFechaAgendada("HBN45C").get(0);
-		assertThat(agendada.getEstado()).isEqualTo(EstadoReparacion.AGENDADA);
-		assertThat(agendada.getTecnico()).isNull();
-		assertThat(agendada.getCosto()).isNull();
+	void consultasDeReparaciones() {
+		assertThat(reparacionRepository.count()).isEqualTo(10);
+		assertThat(reparacionRepository.deTecnico(4)).hasSize(4);
+		assertThat(reparacionRepository.deCliente(1)).extracting(r -> r.getMoto().getPlaca()).containsExactly("HBN46C");
+		assertThat(reparacionRepository.buscar(1, null, null)).hasSize(4);
+		assertThat(reparacionRepository.buscar(null, LocalDate.of(2026, 10, 1), null)).hasSize(2);
+		assertThat(reparacionRepository.findById(10).orElseThrow().getRepuestos()).isEmpty();
 	}
 
 	@Test
@@ -123,8 +126,10 @@ class TransaccionesRepositoryTest {
 	@Test
 	void unaMotoNoAdmiteDosReservasActivas() {
 		reservaRepository.saveAndFlush(nuevaReserva("GTK22F", 3));
+		em.clear();
+		assertThat(motoRepository.findById("GTK22F").orElseThrow().getEstado()).isEqualTo(EstadoMoto.RESERVADA);
 		assertThatThrownBy(() -> reservaRepository.saveAndFlush(nuevaReserva("GTK22F", 4))).rootCause()
-				.isInstanceOf(SQLException.class).hasMessageContaining("reserva activa")
+				.isInstanceOf(SQLException.class).hasMessageContaining("no está disponible")
 				.extracting(e -> ((SQLException) e).getSQLState()).isEqualTo("45000");
 	}
 
@@ -139,11 +144,12 @@ class TransaccionesRepositoryTest {
 		venta.setMoto(reserva.getMoto());
 		venta.setCliente(reserva.getCliente());
 		venta.setVendedor(vendedorRepository.getReferenceById(6));
-		venta.setReserva(reserva);
 		ventaMotoRepository.saveAndFlush(venta);
-		em.refresh(reserva);
-		assertThat(reserva.getEstado()).isEqualTo(EstadoReserva.CONCRETADA);
-		assertThat(ventaMotoRepository.existsByMotoPlaca("LMN24P")).isTrue();
+		em.flush();
+		em.clear();
+		assertThat(reservaRepository.findById(reserva.getIdReserva()).orElseThrow().getEstado())
+				.isEqualTo(EstadoReserva.CONCRETADA);
+		assertThat(motoRepository.findById("LMN24P").orElseThrow().getEstado()).isEqualTo(EstadoMoto.VENDIDA);
 	}
 
 	@Test
@@ -158,20 +164,25 @@ class TransaccionesRepositoryTest {
 		venta.agregarDetalle(accesorioRepository.getReferenceById(8), 2, new BigDecimal("299000"));
 		Integer id = ventaAccesorioRepository.saveAndFlush(venta).getIdVentaAccesorio();
 		em.clear();
-		assertThat(ventaAccesorioRepository.findById(id).orElseThrow().getDetalles()).hasSize(2);
-		assertThat(totalVentaAccesorioRepository.findById(id).orElseThrow().getValorTotal()).isEqualByComparingTo("787000");
+		VentaAccesorio leida = ventaAccesorioRepository.findById(id).orElseThrow();
+		assertThat(leida.getDetalles()).hasSize(2);
+		assertThat(leida.getValorTotal()).isEqualByComparingTo("787000");
 	}
 
 	@Test
-	void registraRepuestoUsadoYLaBaseExigeCostoParaFinalizar() {
+	void registraRepuestoUsadoYLaBaseExigeMotoVendida() {
 		Reparacion reparacion = reparacionRepository.findById(10).orElseThrow();
 		reparacion.agregarRepuesto(repuestoRepository.getReferenceById(1), 1, new BigDecimal("38000"));
 		reparacionRepository.saveAndFlush(reparacion);
 		assertThat(costoReparacionRepository.findById(10).orElseThrow().getRepuestos()).isEqualByComparingTo("38000");
-		reparacion.setEstado(EstadoReparacion.FINALIZADA);
-		reparacion.setFechaFinalizacion(LocalDateTime.of(2026, 10, 29, 17, 0));
-		assertThatThrownBy(() -> reparacionRepository.saveAndFlush(reparacion)).rootCause()
-				.hasMessageContaining("ck_reparacion_cierre");
+		Reparacion invalida = new Reparacion();
+		invalida.setMoto(motoRepository.getReferenceById("GTK22F"));
+		invalida.setFecha(LocalDate.of(2026, 10, 29));
+		invalida.setDescripcion("Prueba");
+		invalida.setCosto(new BigDecimal("1000"));
+		invalida.getTecnicos().add(tecnicoRepository.getReferenceById(4));
+		assertThatThrownBy(() -> reparacionRepository.saveAndFlush(invalida)).rootCause()
+				.hasMessageContaining("solo atiende motos vendidas");
 	}
 
 	@Test

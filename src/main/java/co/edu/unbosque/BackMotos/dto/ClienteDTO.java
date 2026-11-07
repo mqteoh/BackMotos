@@ -13,6 +13,22 @@ import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Datos de un cliente para el vendedor y el dueño.
+ *
+ * @param idCliente identificador del cliente
+ * @param documento número de documento de identidad
+ * @param nombres nombres de la persona
+ * @param apellidos apellidos de la persona
+ * @param fechaNacimiento fecha de nacimiento
+ * @param ciudad ciudad
+ * @param barrio barrio de la dirección
+ * @param calle calle de la dirección
+ * @param numeroDireccion número de la dirección
+ * @param telefonos números de teléfono
+ * @param correos correos de contacto
+ * @param tieneCuentaWeb true si el cliente puede iniciar sesión en la aplicación
+ */
 public record ClienteDTO(@Schema(accessMode = Schema.AccessMode.READ_ONLY) Integer idCliente,
 		@NotBlank(message = "El documento es obligatorio.") @Pattern(regexp = "^[0-9]{5,15}$", message = "El documento debe tener entre 5 y 15 dígitos.") String documento,
 		@NotBlank(message = "Los nombres son obligatorios.") @Size(max = 60, message = "Los nombres admiten máximo 60 caracteres.") String nombres,
@@ -26,9 +42,16 @@ public record ClienteDTO(@Schema(accessMode = Schema.AccessMode.READ_ONLY) Integ
 		@Size(max = 5, message = "Se admiten máximo 5 correos.") List<@Email(message = "Cada correo debe ser válido.") @Size(max = 120, message = "Cada correo admite máximo 120 caracteres.") String> correos,
 		@Schema(accessMode = Schema.AccessMode.READ_ONLY) Boolean tieneCuentaWeb) {
 
-	public static ClienteDTO de(Cliente c) {
+	/**
+	 * Arma el DTO e indica si el cliente tiene cuenta en la web.
+	 *
+	 * @param c cliente que se convierte
+	 * @param tieneCuentaWeb true si el cliente puede iniciar sesión en la aplicación
+	 * @return el DTO del cliente
+	 */
+	public static ClienteDTO de(Cliente c, boolean tieneCuentaWeb) {
 		return new ClienteDTO(c.getIdCliente(), c.getDocumento(), c.getNombres(), c.getApellidos(),
 				c.getFechaNacimiento(), c.getCiudad(), c.getBarrio(), c.getCalle(), c.getNumeroDireccion(),
-				new ArrayList<>(c.getTelefonos()), new ArrayList<>(c.getCorreos()), c.tieneCuentaWeb());
+				new ArrayList<>(c.getTelefonos()), new ArrayList<>(c.getCorreos()), tieneCuentaWeb);
 	}
 }

@@ -27,14 +27,14 @@ class GlobalExceptionHandlerTest {
 	@Test
 	void triggerDeLaBaseResponde409ConSuMensaje() throws Exception {
 		mvc.perform(post("/prueba-errores/reserva-moto-vendida")).andExpect(status().isConflict())
-				.andExpect(jsonPath("$.estado").value(409)).andExpect(jsonPath("$.mensaje").value("La moto ya fue vendida"))
+				.andExpect(jsonPath("$.estado").value(409)).andExpect(jsonPath("$.mensaje").value("La moto no está disponible para reservar"))
 				.andExpect(jsonPath("$.ruta").value("/prueba-errores/reserva-moto-vendida"));
 	}
 
 	@Test
 	void checkDeLaBaseResponde409ConMensajeLegible() throws Exception {
-		mvc.perform(post("/prueba-errores/moto-externa-con-sede")).andExpect(status().isConflict())
-				.andExpect(jsonPath("$.mensaje").value(containsString("moto externa no lleva")));
+		mvc.perform(post("/prueba-errores/moto-anio-invalido")).andExpect(status().isConflict())
+				.andExpect(jsonPath("$.mensaje").value("El año de la moto debe estar entre 1980 y 2030."));
 	}
 
 	@Test

@@ -9,11 +9,19 @@ import co.edu.unbosque.BackMotos.entity.Proveedor;
 import co.edu.unbosque.BackMotos.exception.ConflictException;
 import co.edu.unbosque.BackMotos.repository.ProveedorRepository;
 
+/** CRUD de proveedores; la llave es el NIT. */
 @Service
 public class ProveedorService extends ServicioCrudBase<Proveedor, ProveedorDTO, String> {
 
+	/** Acceso a la base para los proveedores. */
 	private final ProveedorRepository proveedorRepository;
 
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param proveedorRepository acceso a la base para los proveedores
+	 * @param mapper convierte entidades en DTO y al revés
+	 */
 	public ProveedorService(ProveedorRepository proveedorRepository, ModelMapper mapper) {
 		super(proveedorRepository, mapper, Proveedor.class, ProveedorDTO.class, "el proveedor", Sort.by("nombre"));
 		this.proveedorRepository = proveedorRepository;
@@ -43,6 +51,11 @@ public class ProveedorService extends ServicioCrudBase<Proveedor, ProveedorDTO, 
 		entidad.setNit(id);
 	}
 
+	/**
+	 * Lanza ConflictException si ya existe un proveedor con ese nombre.
+	 *
+	 * @param nombre nombre del proveedor
+	 */
 	private void validarNombre(String nombre) {
 		if (proveedorRepository.existsByNombreIgnoreCase(nombre)) {
 			throw new ConflictException("Ya existe un proveedor con el nombre " + nombre + ".");

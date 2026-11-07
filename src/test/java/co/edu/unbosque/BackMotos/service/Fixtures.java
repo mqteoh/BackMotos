@@ -11,7 +11,6 @@ import co.edu.unbosque.BackMotos.entity.Marca;
 import co.edu.unbosque.BackMotos.entity.Modelo;
 import co.edu.unbosque.BackMotos.entity.ModeloId;
 import co.edu.unbosque.BackMotos.entity.Moto;
-import co.edu.unbosque.BackMotos.entity.OrigenMoto;
 import co.edu.unbosque.BackMotos.entity.Sucursal;
 import co.edu.unbosque.BackMotos.entity.Tecnico;
 import co.edu.unbosque.BackMotos.entity.Vendedor;
@@ -46,7 +45,6 @@ final class Fixtures {
 		moto.setPlaca(placa);
 		moto.setModelo(modelo);
 		moto.setSucursal(sede);
-		moto.setOrigen(OrigenMoto.INVENTARIO);
 		moto.setAnio(2026);
 		moto.setColor("Gris");
 		moto.setKilometraje(0);

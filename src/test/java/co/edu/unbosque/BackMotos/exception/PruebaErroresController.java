@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import co.edu.unbosque.BackMotos.dto.MarcaDTO;
 import co.edu.unbosque.BackMotos.entity.Moto;
-import co.edu.unbosque.BackMotos.entity.OrigenMoto;
 import co.edu.unbosque.BackMotos.entity.Reserva;
 import co.edu.unbosque.BackMotos.repository.ClienteRepository;
 import co.edu.unbosque.BackMotos.repository.ModeloRepository;
@@ -57,14 +56,13 @@ class PruebaErroresController {
 		reservaRepository.saveAndFlush(reserva);
 	}
 
-	@PostMapping("/moto-externa-con-sede")
-	void motoExternaConSede() {
+	@PostMapping("/moto-anio-invalido")
+	void motoAnioInvalido() {
 		Moto moto = new Moto();
 		moto.setPlaca("ERR10Z");
 		moto.setModelo(modeloRepository.getReferenceById(new ModeloId(1, 1)));
 		moto.setSucursal(sucursalRepository.getReferenceById(1));
-		moto.setOrigen(OrigenMoto.EXTERNA);
-		moto.setAnio(2020);
+		moto.setAnio(1900);
 		moto.setColor("Rojo");
 		moto.setKilometraje(1000);
 		moto.setPrecio(new BigDecimal("1000000"));

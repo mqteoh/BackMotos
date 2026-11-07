@@ -6,27 +6,32 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import co.edu.unbosque.BackMotos.repository.ClienteRepository;
-import co.edu.unbosque.BackMotos.repository.EmpleadoRepository;
+import co.edu.unbosque.BackMotos.repository.CuentaRepository;
 
+/**
+ * Busca la cuenta por correo cuando alguien inicia sesión.
+ */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-	private final EmpleadoRepository empleadoRepository;
-	private final ClienteRepository clienteRepository;
+	/** Acceso a la base para las cuentas. */
+	private final CuentaRepository cuentaRepository;
 
-	public UserDetailsServiceImpl(EmpleadoRepository empleadoRepository, ClienteRepository clienteRepository) {
-		this.empleadoRepository = empleadoRepository;
-		this.clienteRepository = clienteRepository;
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param cuentaRepository acceso a la base para las cuentas
+	 */
+	public UserDetailsServiceImpl(CuentaRepository cuentaRepository) {
+		this.cuentaRepository = cuentaRepository;
 	}
 
+	/** Busca la cuenta por correo para iniciar sesión. */
 	@Override
 	@Transactional(readOnly = true)
 	public UserDetails loadUserByUsername(String correo) {
 		String normalizado = correo == null ? "" : correo.trim();
-		return empleadoRepository.findByCorreoAccesoIgnoreCase(normalizado).map(UsuarioAutenticado::deEmpleado)
-				.or(() -> clienteRepository.findByCorreoAccesoIgnoreCase(normalizado)
-						.filter(c -> c.getPasswordHash() != null).map(UsuarioAutenticado::deCliente))
+		return cuentaRepository.findByCorreoIgnoreCase(normalizado).map(UsuarioAutenticado::deCuenta)
 				.orElseThrow(() -> new UsernameNotFoundException("No existe una cuenta con ese correo."));
 	}
 }

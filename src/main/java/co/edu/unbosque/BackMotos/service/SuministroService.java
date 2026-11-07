@@ -19,15 +19,30 @@ import co.edu.unbosque.BackMotos.repository.RepuestoRepository;
 import co.edu.unbosque.BackMotos.repository.SucursalRepository;
 import co.edu.unbosque.BackMotos.repository.SuministroRepository;
 
+/** Suministros de repuestos a las sedes. */
 @Service
 public class SuministroService {
 
+	/** Acceso a la base para los suministros. */
 	private final SuministroRepository suministroRepository;
+	/** Acceso a la base para los proveedores. */
 	private final ProveedorRepository proveedorRepository;
+	/** Acceso a la base para los repuestos. */
 	private final RepuestoRepository repuestoRepository;
+	/** Acceso a la base para las sedes. */
 	private final SucursalRepository sucursalRepository;
+	/** Reloj para saber la fecha y hora actual. */
 	private final Clock reloj;
 
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param suministroRepository acceso a la base para los suministros
+	 * @param proveedorRepository acceso a la base para los proveedores
+	 * @param repuestoRepository acceso a la base para los repuestos
+	 * @param sucursalRepository acceso a la base para las sedes
+	 * @param reloj reloj para saber la fecha y hora actual
+	 */
 	public SuministroService(SuministroRepository suministroRepository, ProveedorRepository proveedorRepository,
 			RepuestoRepository repuestoRepository, SucursalRepository sucursalRepository, Clock reloj) {
 		this.suministroRepository = suministroRepository;
@@ -37,6 +52,13 @@ public class SuministroService {
 		this.reloj = reloj;
 	}
 
+	/**
+	 * Suministros de una sede o de un proveedor, del más reciente al más antiguo.
+	 *
+	 * @param idSucursal identificador de la sede
+	 * @param nit el NIT del proveedor
+	 * @return suministros de una sede o de un proveedor, del más reciente al más antiguo
+	 */
 	@Transactional(readOnly = true)
 	public List<SuministroDTO> listar(Integer idSucursal, String nit) {
 		List<Suministro> suministros;
@@ -51,6 +73,12 @@ public class SuministroService {
 				.map(SuministroDTO::de).toList();
 	}
 
+	/**
+	 * Registra una entrega; si no trae fecha usa la fecha y hora actuales.
+	 *
+	 * @param datos datos que llegan en la petición
+	 * @return el suministro registrado
+	 */
 	@Transactional
 	public SuministroDTO registrar(SuministroDTO datos) {
 		LocalDateTime fecha = (datos.fechaSuministro() == null ? LocalDateTime.now(reloj) : datos.fechaSuministro())
@@ -70,6 +98,11 @@ public class SuministroService {
 		return SuministroDTO.de(suministroRepository.saveAndFlush(suministro));
 	}
 
+	/**
+	 * Borra un suministro por su llave completa.
+	 *
+	 * @param id llave del suministro: proveedor, repuesto, sede y fecha
+	 */
 	@Transactional
 	public void eliminar(SuministroId id) {
 		Suministro suministro = suministroRepository.findById(id)

@@ -21,30 +21,55 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+/** CRUD del dueño para los modelos, que se identifican por marca y número. */
 @RestController
 @RequestMapping("/api/admin/modelos")
 @Tag(name = "Dueño: modelos", description = "El modelo se identifica por la marca y su número dentro de la marca")
 @SecurityRequirement(name = "bearer")
 public class AdminModeloController {
 
+	/** Servicio de los modelos. */
 	private final ModeloService modeloService;
 
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param modeloService servicio de los modelos
+	 */
 	public AdminModeloController(ModeloService modeloService) {
 		this.modeloService = modeloService;
 	}
 
+	/**
+	 * Lista todos los modelos.
+	 *
+	 * @return todos los modelos
+	 */
 	@GetMapping
 	@Operation(summary = "Lista todos los modelos")
 	public List<ModeloDTO> listar() {
 		return modeloService.listar();
 	}
 
+	/**
+	 * Consulta un modelo.
+	 *
+	 * @param idMarca identificador de la marca
+	 * @param nroModelo número del modelo dentro de la marca
+	 * @return el modelo encontrado
+	 */
 	@GetMapping("/{idMarca}/{nroModelo}")
 	@Operation(summary = "Consulta un modelo")
 	public ModeloDTO buscar(@PathVariable Integer idMarca, @PathVariable Integer nroModelo) {
 		return modeloService.buscarPorId(new ModeloId(idMarca, nroModelo));
 	}
 
+	/**
+	 * Crea un modelo; el número se asigna dentro de la marca.
+	 *
+	 * @param datos datos que llegan en la petición
+	 * @return el modelo creado
+	 */
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	@Operation(summary = "Crea un modelo; el número se asigna dentro de la marca")
@@ -52,6 +77,14 @@ public class AdminModeloController {
 		return modeloService.crear(datos);
 	}
 
+	/**
+	 * Actualiza un modelo (la marca no se puede cambiar).
+	 *
+	 * @param idMarca identificador de la marca
+	 * @param nroModelo número del modelo dentro de la marca
+	 * @param datos datos que llegan en la petición
+	 * @return el modelo con los cambios
+	 */
 	@PutMapping("/{idMarca}/{nroModelo}")
 	@Operation(summary = "Actualiza un modelo (la marca no se puede cambiar)")
 	public ModeloDTO actualizar(@PathVariable Integer idMarca, @PathVariable Integer nroModelo,
@@ -59,6 +92,12 @@ public class AdminModeloController {
 		return modeloService.actualizar(new ModeloId(idMarca, nroModelo), datos);
 	}
 
+	/**
+	 * Elimina un modelo sin motos asociadas.
+	 *
+	 * @param idMarca identificador de la marca
+	 * @param nroModelo número del modelo dentro de la marca
+	 */
 	@DeleteMapping("/{idMarca}/{nroModelo}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@Operation(summary = "Elimina un modelo sin motos asociadas")

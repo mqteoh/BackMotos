@@ -31,18 +31,30 @@ import co.edu.unbosque.BackMotos.dto.ErrorDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+/** Reglas de seguridad: qué rol entra a cada grupo de rutas. */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-	private static final String[] RUTAS_DOCUMENTACION = { "/", "/index.html", "/swagger-ui.html", "/swagger-ui/**",
+	/** Rutas de Swagger y OpenAPI que no piden sesión. */
+	private static final String[] RUTAS_DOCUMENTACION = { "/docs", "/swagger-ui.html", "/swagger-ui/**",
 			"/v3/api-docs/**" };
 
+	/** Filtro que lee el token de cada petición. */
 	private final JwtAuthenticationFilter jwtFilter;
+	/** Convierte objetos a JSON. */
 	private final ObjectMapper objectMapper;
+	/** Orígenes que pueden llamar a la API desde el navegador. */
 	private final List<String> origenesPermitidos;
 
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param jwtFilter filtro que lee el token de cada petición
+	 * @param objectMapper convierte objetos a JSON
+	 * @param origenes orígenes permitidos, separados por coma
+	 */
 	public SecurityConfig(JwtAuthenticationFilter jwtFilter, ObjectMapper objectMapper,
 			@Value("${app.cors.origenes:http://localhost:4200}") String origenes) {
 		this.jwtFilter = jwtFilter;
@@ -51,6 +63,13 @@ public class SecurityConfig {
 				.toList();
 	}
 
+	/**
+	 * Rutas públicas, rutas por rol y sesión sin estado con JWT.
+	 *
+	 * @param http configuración de seguridad de Spring
+	 * @return la cadena de filtros de seguridad
+	 * @throws Exception si Spring no puede armar la configuración
+	 */
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.csrf(AbstractHttpConfigurer::disable).cors(c -> c.configurationSource(corsConfigurationSource()))
@@ -63,7 +82,8 @@ public class SecurityConfig {
 						.requestMatchers("/api/cliente/**").hasRole(Rol.CLIENTE.name())
 						.requestMatchers("/api/vendedor/**").hasAnyRole(Rol.VENDEDOR.name(), Rol.DUENO.name())
 						.requestMatchers("/api/tecnico/**").hasAnyRole(Rol.TECNICO.name(), Rol.DUENO.name())
-						.requestMatchers("/api/admin/**").hasRole(Rol.DUENO.name()).anyRequest().authenticated())
+						.requestMatchers("/api/admin/**").hasRole(Rol.DUENO.name())
+						.requestMatchers("/api/**", "/auth/**").authenticated().anyRequest().permitAll())
 				.exceptionHandling(e -> e
 						.authenticationEntryPoint((req, res, ex) -> escribirError(req, res, 401,
 								"Debe iniciar sesión para continuar."))
@@ -73,6 +93,12 @@ public class SecurityConfig {
 		return http.build();
 	}
 
+	/**
+	 * Evita que el filtro JWT se registre dos veces.
+	 *
+	 * @param filtro filtro JWT
+	 * @return el registro del filtro, desactivado
+	 */
 	@Bean
 	public FilterRegistrationBean<JwtAuthenticationFilter> registroFiltroJwt(JwtAuthenticationFilter filtro) {
 		FilterRegistrationBean<JwtAuthenticationFilter> registro = new FilterRegistrationBean<>(filtro);
@@ -80,6 +106,11 @@ public class SecurityConfig {
 		return registro;
 	}
 
+	/**
+	 * Orígenes que pueden llamar a la API desde el navegador.
+	 *
+	 * @return la configuración de CORS
+	 */
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
@@ -92,16 +123,37 @@ public class SecurityConfig {
 		return source;
 	}
 
+	/**
+	 * Componente que revisa correo y contraseña al iniciar sesión.
+	 *
+	 * @param configuracion configuración de autenticación de Spring
+	 * @return componente que revisa correo y contraseña al iniciar sesión
+	 * @throws Exception si Spring no puede crear el componente
+	 */
 	@Bean
 	public AuthenticationManager authenticationManager(AuthenticationConfiguration configuracion) throws Exception {
 		return configuracion.getAuthenticationManager();
 	}
 
+	/**
+	 * Cifra las contraseñas con BCrypt.
+	 *
+	 * @return el codificador BCrypt
+	 */
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
 
+	/**
+	 * Escribe un error en JSON cuando falta la sesión o el permiso.
+	 *
+	 * @param req petición que se rechazó
+	 * @param res respuesta donde se escribe el error
+	 * @param estado código de estado HTTP
+	 * @param mensaje mensaje para el usuario
+	 * @throws IOException si no se puede escribir la respuesta
+	 */
 	private void escribirError(HttpServletRequest req, HttpServletResponse res, int estado, String mensaje)
 			throws IOException {
 		res.setStatus(estado);
