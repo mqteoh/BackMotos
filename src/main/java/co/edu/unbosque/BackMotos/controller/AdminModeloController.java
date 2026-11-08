@@ -1,0 +1,107 @@
+package co.edu.unbosque.BackMotos.controller;
+
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import co.edu.unbosque.BackMotos.dto.ModeloDTO;
+import co.edu.unbosque.BackMotos.entity.ModeloId;
+import co.edu.unbosque.BackMotos.service.ModeloService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+
+/** CRUD del dueño para los modelos, que se identifican por marca y número. */
+@RestController
+@RequestMapping("/api/admin/modelos")
+@Tag(name = "Dueño: modelos", description = "El modelo se identifica por la marca y su número dentro de la marca")
+@SecurityRequirement(name = "bearer")
+public class AdminModeloController {
+
+	/** Servicio de los modelos. */
+	private final ModeloService modeloService;
+
+	/**
+	 * Recibe las dependencias que inyecta Spring.
+	 *
+	 * @param modeloService servicio de los modelos
+	 */
+	public AdminModeloController(ModeloService modeloService) {
+		this.modeloService = modeloService;
+	}
+
+	/**
+	 * Lista todos los modelos.
+	 *
+	 * @return todos los modelos
+	 */
+	@GetMapping
+	@Operation(summary = "Lista todos los modelos")
+	public List<ModeloDTO> listar() {
+		return modeloService.listar();
+	}
+
+	/**
+	 * Consulta un modelo.
+	 *
+	 * @param idMarca identificador de la marca
+	 * @param nroModelo número del modelo dentro de la marca
+	 * @return el modelo encontrado
+	 */
+	@GetMapping("/{idMarca}/{nroModelo}")
+	@Operation(summary = "Consulta un modelo")
+	public ModeloDTO buscar(@PathVariable Integer idMarca, @PathVariable Integer nroModelo) {
+		return modeloService.buscarPorId(new ModeloId(idMarca, nroModelo));
+	}
+
+	/**
+	 * Crea un modelo; el número se asigna dentro de la marca.
+	 *
+	 * @param datos datos que llegan en la petición
+	 * @return el modelo creado
+	 */
+	@PostMapping
+	@ResponseStatus(HttpStatus.CREATED)
+	@Operation(summary = "Crea un modelo; el número se asigna dentro de la marca")
+	public ModeloDTO crear(@Valid @RequestBody ModeloDTO datos) {
+		return modeloService.crear(datos);
+	}
+
+	/**
+	 * Actualiza un modelo (la marca no se puede cambiar).
+	 *
+	 * @param idMarca identificador de la marca
+	 * @param nroModelo número del modelo dentro de la marca
+	 * @param datos datos que llegan en la petición
+	 * @return el modelo con los cambios
+	 */
+	@PutMapping("/{idMarca}/{nroModelo}")
+	@Operation(summary = "Actualiza un modelo (la marca no se puede cambiar)")
+	public ModeloDTO actualizar(@PathVariable Integer idMarca, @PathVariable Integer nroModelo,
+			@Valid @RequestBody ModeloDTO datos) {
+		return modeloService.actualizar(new ModeloId(idMarca, nroModelo), datos);
+	}
+
+	/**
+	 * Elimina un modelo sin motos asociadas.
+	 *
+	 * @param idMarca identificador de la marca
+	 * @param nroModelo número del modelo dentro de la marca
+	 */
+	@DeleteMapping("/{idMarca}/{nroModelo}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@Operation(summary = "Elimina un modelo sin motos asociadas")
+	public void eliminar(@PathVariable Integer idMarca, @PathVariable Integer nroModelo) {
+		modeloService.eliminar(new ModeloId(idMarca, nroModelo));
+	}
+}
